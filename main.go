@@ -81,6 +81,10 @@ func prom(w http.ResponseWriter, r *http.Request) {
 	var message strings.Builder
 	message.WriteString(fmt.Sprintf("*status*: %s", strings.ToUpper(data.Status)))
 
+	if len(*appConfig.clusterName) > 0 {
+		message.WriteString(fmt.Sprintf("Cluster: %s", *appConfig.clusterName))
+	}
+
 	if len(data.Alerts) > 0 {
 		alert := data.Alerts[0]
 		duration := alert.EndsAt.Sub(alert.StartsAt)
@@ -208,6 +212,7 @@ type appConfigType struct {
 	chatID          *int64
 	alertManagerURL *string
 	prometheusURL   *string
+	clusterName     *string
 }
 
 var appConfig = appConfigType{
@@ -240,6 +245,10 @@ var appConfig = appConfigType{
 		"prometheus.url",
 		"prometheus.url",
 	).Default("https://prometheus.paskal-dev.com/alerts").String(),
+	clusterName: kingpin.Flag(
+		"cluster.name",
+		"cluster.name",
+	).String(),
 }
 
 var bot *tgbotapi.BotAPI
