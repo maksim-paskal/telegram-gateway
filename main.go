@@ -82,7 +82,7 @@ func prom(w http.ResponseWriter, r *http.Request) {
 	message.WriteString(fmt.Sprintf("*status*: %s", strings.ToUpper(data.Status)))
 
 	if len(*appConfig.clusterName) > 0 {
-		message.WriteString(fmt.Sprintf("Cluster: %s", *appConfig.clusterName))
+		message.WriteString(formatTelegramMessage("Cluster", *appConfig.clusterName))
 	}
 
 	if len(data.Alerts) > 0 {
