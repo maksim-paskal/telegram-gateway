@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-gateway
+  labels:
+    app: telegram-gateway
+spec:
+  selector:
+    matchLabels:
+      app: telegram-gateway
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      labels:
+        app: telegram-gateway
+        chart-version: {{ .Chart.Version | quote }}
+    spec:
+      containers:
+      - name: telegram-gateway
+        resources:
+{{ toYaml .Values.resources | indent 9 }}
+        image: {{ .Values.registry.image }}
+        imagePullPolicy: {{ .Values.registry.imagePullPolicy }}
+        command:
+        - telegram-gateway
+        - --alertmanager.url={{ .Values.urls.alertmanager }}
+        - --prometheus.url={{ .Values.urls.prometheus }}
+        - --cluster.name={{ .Values.cluster.name }}
+        env:
+        - name: "CHAT_TOKEN"
+          value: {{ .Values.telegram.token | quote }}
+        - name: "CHAT_ID"
+          value: {{ int .Values.telegram.id | quote }}
+        ports:
+        - containerPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegram-gateway
+  labels:
+    app: telegram-gateway
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9090
+    protocol: TCP
+  selector:
+    app: telegram-gateway

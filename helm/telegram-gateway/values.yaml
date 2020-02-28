@@ -1,0 +1,22 @@
+registry:
+  image: paskalmaksim/telegram-gateway:1.0.2
+  imagePullPolicy: IfNotPresent
+
+replicas: 1
+
+telegram:
+  token: "1072104160:AAH2sFpHELeH5oxMmd-tsVjgTuzoYO6hSLM"
+  id: "-479832859"
+
+cluster:
+  name: ""
+
+urls:
+  alertmanager: "https://test"
+  prometheus: "https://test"
+
+resources:
+  requests:
+    memory: "20Mi"
+  limits:
+    memory: "20Mi"
