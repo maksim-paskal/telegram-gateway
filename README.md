@@ -3,15 +3,13 @@ Prometheus and Sentry has no adapters for sending telegram messages for Ops peop
 
 # Install in your kubernetes cluster
 ```
-git clone git@github.com:maksim-paskal/telegram-gateway.git
-
-# Install helm https://helm.sh/docs/intro/install/
+helm repo add paskal-dev https://maksim-paskal.github.io/helm/
 
 # standart installation
-helm install --namespace telegram-gateway helm/telegram-gateway
+helm install --namespace telegram-gateway paskal-dev/telegram-gateway
 
 # installation without tiller
-helm template --namespace telegram-gateway helm/telegram-gateway | kubectl apply --dry-run -f -
+helm template --namespace telegram-gateway paskal-dev/telegram-gateway | kubectl apply --dry-run -f -
 ```
 
 # Prometheus configuration
