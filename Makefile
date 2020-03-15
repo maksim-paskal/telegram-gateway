@@ -1,3 +1,5 @@
+test:
+	helm lint --strict helm/telegram-gateway
+	helm template helm/telegram-gateway | kubectl apply --dry-run -f -
 build:
-	helm package charts/*
-	helm --url https://test repo index .
+	docker build .
