@@ -26,10 +26,11 @@ export GOX="go run github.com/mitchellh/gox"
 
 rm -rf _dist
 
-$GOX -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$BINNAME" -osarch="$TARGETS" $GOFLAGS -tags "$TAGS" -ldflags "$LDFLAGS"
+$GOX -parallel=3 -output="_dist/$BINNAME-{{.OS}}-{{.Arch}}/$BINNAME" -osarch="$TARGETS" $GOFLAGS -tags "$TAGS" -ldflags "$LDFLAGS"
 
-for dir in _dist/*
+cd _dist
+for dir in *
 do
   base=$(basename "$dir")
-  tar -czf "_dist/$BINNAME-${base}.tar.gz" "$dir"
+  tar -czf "${base}.tar.gz" "$dir"
 done
