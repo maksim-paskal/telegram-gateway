@@ -20,9 +20,16 @@ export GO111MODULE=on
 export TAGS=""
 export GOFLAGS=""
 export LDFLAGS="-X main.buildTime=$(date +\"%Y%m%d%H%M%S\")"
-export TARGETS="darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le linux/s390x windows/amd64"
+export TARGETS="darwin/amd64 linux/amd64"
 export BINNAME="telegram-gateway"
 export GOX="go run github.com/mitchellh/gox"
 
+rm -rf _dist
+
 $GOX -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$BINNAME" -osarch="$TARGETS" $GOFLAGS -tags "$TAGS" -ldflags "$LDFLAGS"
 
+for dir in _dist/*
+do
+  base=$(basename "$dir")
+  tar -czf "_dist/$BINNAME-${base}.tar.gz" "$dir"
+done
