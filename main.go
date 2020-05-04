@@ -53,6 +53,49 @@ func formatDuration(d time.Duration) string {
 	return duration.String()
 }
 
+/*
+for curl messages. example:
+
+curl -X GET localhost:9090/message -G \
+-d test=value \
+-d url=https://test.com
+*/
+func message(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var err error
+
+	var message strings.Builder
+
+	for k, v := range r.URL.Query() {
+		if k != "url" {
+			message.WriteString(formatTelegramMessage(k, v[0]))
+		}
+	}
+
+	msg := tgbotapi.NewMessage(*appConfig.chatID, message.String())
+	msg.ParseMode = "Markdown"
+
+	if len(r.URL.Query()["url"]) > 0 {
+		keyboard := tgbotapi.InlineKeyboardMarkup{}
+		var row []tgbotapi.InlineKeyboardButton
+		btn1 := tgbotapi.NewInlineKeyboardButtonURL("Open", r.URL.Query()["url"][0])
+		row = append(row, btn1)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+		msg.ReplyMarkup = keyboard
+	}
+	_, err = bot.Send(msg)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error(err)
+		return
+	}
+	_, err = w.Write([]byte("OK"))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error(err)
+	}
+}
 func test(w http.ResponseWriter, r *http.Request) {
 	msg := tgbotapi.NewMessage(*appConfig.chatID, "*test*")
 	msg.ParseMode = "Markdown"
@@ -329,6 +372,7 @@ func main() {
 
 	http.HandleFunc("/prom", prom)
 	http.HandleFunc("/sentry", sentry)
+	http.HandleFunc("/message", message)
 	http.HandleFunc("/test", test)
 	log.Printf("Staring server on port %d", *appConfig.port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *appConfig.port), nil)
