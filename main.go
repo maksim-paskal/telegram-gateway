@@ -56,9 +56,11 @@ func formatDuration(d time.Duration) string {
 /*
 for curl messages. example:
 
-curl -X GET localhost:9090/message -G \
+curl -sS -X GET localhost:9090/message -G \
 -d test=value \
--d url=https://test.com
+-d test.empty= \
+-d url=https://test.com \
+-d url.title=Open%20report
 */
 func message(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
@@ -67,7 +69,7 @@ func message(w http.ResponseWriter, r *http.Request) {
 	var message strings.Builder
 
 	for k, v := range r.URL.Query() {
-		if k != "url" {
+		if k != "url" && k != "url.title" && len(v[0]) > 0 {
 			message.WriteString(formatTelegramMessage(k, v[0]))
 		}
 	}
@@ -78,7 +80,11 @@ func message(w http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Query()["url"]) > 0 {
 		keyboard := tgbotapi.InlineKeyboardMarkup{}
 		var row []tgbotapi.InlineKeyboardButton
-		btn1 := tgbotapi.NewInlineKeyboardButtonURL("Open", r.URL.Query()["url"][0])
+		caption := "Open"
+		if len(r.URL.Query()["url.title"]) > 0 && len(r.URL.Query()["url.title"][0]) > 0 {
+			caption = r.URL.Query()["url.title"][0]
+		}
+		btn1 := tgbotapi.NewInlineKeyboardButtonURL(caption, r.URL.Query()["url"][0])
 		row = append(row, btn1)
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 		msg.ReplyMarkup = keyboard
