@@ -293,7 +293,7 @@ type appConfigType struct {
 }
 
 var appConfig = appConfigType{
-	Version: "1.0.1",
+	Version: "1.0.4",
 	port: kingpin.Flag(
 		"server.port",
 		"port",

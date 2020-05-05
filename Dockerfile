@@ -1,8 +1,7 @@
 FROM golang:1.12 as build
 
-COPY main.go /usr/src/telegram-gateway/main.go
-COPY go.mod /usr/src/telegram-gateway/go.mod
-COPY go.sum /usr/src/telegram-gateway/go.sum
+COPY *.go /usr/src/telegram-gateway/
+COPY go.* /usr/src/telegram-gateway/
 
 ENV GOOS=linux
 ENV GOARCH=amd64
