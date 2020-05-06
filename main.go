@@ -56,11 +56,12 @@ func formatDuration(d time.Duration) string {
 /*
 for curl messages. example:
 
-curl -sS -X GET localhost:9090/message -G \
--d test=value \
--d test.empty= \
--d url=https://test.com \
--d url.title=Open%20report
+curl -sS -X GET localhost:9090/message --get \
+--data-urlencode "test=value" \
+--data-urlencode "test.empty=" \
+--data-urlencode "url=https://test.com" \
+--data-urlencode "msg=hello world" \
+--data-urlencode "url.title=Open report"
 */
 func message(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
