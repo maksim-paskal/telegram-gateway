@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -28,43 +27,15 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+//nolint:gochecknoglobals
 var (
 	buildTime string
+	bot       *tgbotapi.BotAPI
 )
 
-func formatTelegramMessage(name string, value string) string {
-	return fmt.Sprintf("\n*%s*``` %s ```", name, value)
-}
-func formatDuration(d time.Duration) string {
-	seconds := int64(d.Seconds()) % 60
-	minutes := int64(d.Minutes()) % 60
-	hours := int64(d.Hours()) % 24
-	days := int64(d/(24*time.Hour)) % 365 % 7
-
-	var duration strings.Builder
-
-	if days > 0 {
-		duration.WriteString(fmt.Sprintf("%dd", days))
-	}
-	if hours > 0 {
-		duration.WriteString(fmt.Sprintf("%dh", hours))
-	}
-	duration.WriteString(fmt.Sprintf("%dm%ds", minutes, seconds))
-	return duration.String()
-}
-
-/*
-for curl messages. example:
-
-curl -sS -X GET localhost:9090/message --get \
---data-urlencode "test=value" \
---data-urlencode "test.empty=" \
---data-urlencode "url=https://test.com" \
---data-urlencode "msg=hello world" \
---data-urlencode "url.title=Open report"
-*/
 func message(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
 	var err error
 
 	var message strings.Builder
@@ -76,26 +47,34 @@ func message(w http.ResponseWriter, r *http.Request) {
 	}
 
 	msg := tgbotapi.NewMessage(*appConfig.chatID, message.String())
-	msg.ParseMode = "Markdown"
+	msg.ParseMode = ParseModeMarkdown
 
 	if len(r.URL.Query()["url"]) > 0 {
 		keyboard := tgbotapi.InlineKeyboardMarkup{}
+
 		var row []tgbotapi.InlineKeyboardButton
+
 		caption := "Open"
+
 		if len(r.URL.Query()["url.title"]) > 0 && len(r.URL.Query()["url.title"][0]) > 0 {
 			caption = r.URL.Query()["url.title"][0]
 		}
+
 		btn1 := tgbotapi.NewInlineKeyboardButtonURL(caption, r.URL.Query()["url"][0])
 		row = append(row, btn1)
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 		msg.ReplyMarkup = keyboard
 	}
+
 	_, err = bot.Send(msg)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)
+
 		return
 	}
+
 	_, err = w.Write([]byte("OK"))
 
 	if err != nil {
@@ -103,19 +82,25 @@ func message(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 }
+
 func test(w http.ResponseWriter, r *http.Request) {
 	msg := tgbotapi.NewMessage(*appConfig.chatID, "*test*")
-	msg.ParseMode = "Markdown"
+
+	msg.ParseMode = ParseModeMarkdown
+
 	_, err := bot.Send(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)
+
 		return
 	}
+
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	bodyString := string(bodyBytes)
 	log.Info(bodyString)
 
@@ -126,6 +111,7 @@ func test(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 }
+
 func prom(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -133,7 +119,10 @@ func prom(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error(err)
+
+		return
 	}
 
 	if log.GetLevel() == log.DebugLevel {
@@ -143,10 +132,12 @@ func prom(w http.ResponseWriter, r *http.Request) {
 	data := template.Data{}
 	if err := json.Unmarshal(bodyBytes, &data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 
 	var message strings.Builder
+
 	message.WriteString(fmt.Sprintf("*status*: %s", strings.ToUpper(data.Status)))
 
 	if len(*appConfig.clusterName) > 0 {
@@ -156,6 +147,7 @@ func prom(w http.ResponseWriter, r *http.Request) {
 	if len(data.Alerts) > 0 {
 		alert := data.Alerts[0]
 		duration := alert.EndsAt.Sub(alert.StartsAt)
+
 		if alert.EndsAt.IsZero() {
 			duration = time.Since(alert.StartsAt)
 		}
@@ -180,12 +172,15 @@ func prom(w http.ResponseWriter, r *http.Request) {
 		value := data.CommonLabels.Values()[i]
 		message.WriteString(formatTelegramMessage(name, value))
 	}
+
 	msg := tgbotapi.NewMessage(*appConfig.chatID, message.String())
-	msg.ParseMode = "Markdown"
+
+	msg.ParseMode = ParseModeMarkdown
 
 	if strings.ToUpper(data.Status) != "RESOLVED" {
-		keyboard := tgbotapi.InlineKeyboardMarkup{}
 		var row []tgbotapi.InlineKeyboardButton
+
+		keyboard := tgbotapi.InlineKeyboardMarkup{}
 		btn1 := tgbotapi.NewInlineKeyboardButtonURL("Prometheus", *appConfig.prometheusURL)
 		row = append(row, btn1)
 
@@ -195,12 +190,16 @@ func prom(w http.ResponseWriter, r *http.Request) {
 
 		msg.ReplyMarkup = keyboard
 	}
+
 	_, err = bot.Send(msg)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)
+
 		return
 	}
+
 	_, err = w.Write([]byte("OK"))
 
 	if err != nil {
@@ -215,6 +214,7 @@ type sentryStructEvent struct {
 	Tags     [][]string        `json:"tags"`
 	Metadata map[string]string `json:"metadata"`
 }
+
 type sentryStruct struct {
 	Project string            `json:"project"`
 	URL     string            `json:"url"`
@@ -228,7 +228,10 @@ func sentry(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error(err)
+
+		return
 	}
 
 	if log.GetLevel() == log.DebugLevel {
@@ -237,17 +240,22 @@ func sentry(w http.ResponseWriter, r *http.Request) {
 
 	var data sentryStruct
 	err = json.Unmarshal(bodyBytes, &data)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)
+
 		return
 	}
+
 	var message strings.Builder
 
 	message.WriteString(formatTelegramMessage("Sentry.Project", data.Project))
+
 	if len(data.Event.Release) > 0 {
 		message.WriteString(formatTelegramMessage("Release", data.Event.Release))
 	}
+
 	message.WriteString(formatTelegramMessage("Title", data.Event.Title))
 
 	for _, tag := range data.Event.Tags {
@@ -255,10 +263,11 @@ func sentry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	msg := tgbotapi.NewMessage(*appConfig.chatID, message.String())
-	msg.ParseMode = "Markdown"
+	msg.ParseMode = ParseModeMarkdown
+
+	var row []tgbotapi.InlineKeyboardButton
 
 	keyboard := tgbotapi.InlineKeyboardMarkup{}
-	var row []tgbotapi.InlineKeyboardButton
 	btn1 := tgbotapi.NewInlineKeyboardButtonURL("Open Sentry", data.URL)
 	row = append(row, btn1)
 
@@ -270,6 +279,7 @@ func sentry(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)
+
 		return
 	}
 
@@ -281,56 +291,6 @@ func sentry(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type appConfigType struct {
-	Version         string
-	port            *int
-	logLevel        *string
-	chatServer      *bool
-	chatToken       *string
-	chatID          *int64
-	alertManagerURL *string
-	prometheusURL   *string
-	clusterName     *string
-}
-
-var appConfig = appConfigType{
-	Version: "1.0.4",
-	port: kingpin.Flag(
-		"server.port",
-		"port",
-	).Default("9090").Int(),
-	logLevel: kingpin.Flag(
-		"log.level",
-		"log level",
-	).Default("INFO").String(),
-	chatServer: kingpin.Flag(
-		"enableChatServer",
-		"enableChatServer",
-	).Default("false").Bool(),
-	chatToken: kingpin.Flag(
-		"chat.token",
-		"chat.token",
-	).Default(os.Getenv("CHAT_TOKEN")).String(),
-	chatID: kingpin.Flag(
-		"chat.id",
-		"chat.id",
-	).Default(os.Getenv("CHAT_ID")).Int64(),
-	alertManagerURL: kingpin.Flag(
-		"alertmanager.url",
-		"alertmanager.url",
-	).Default("https://alertmanager.paskal-dev.com").String(),
-	prometheusURL: kingpin.Flag(
-		"prometheus.url",
-		"prometheus.url",
-	).Default("https://prometheus.paskal-dev.com/alerts").String(),
-	clusterName: kingpin.Flag(
-		"cluster.name",
-		"cluster.name",
-	).String(),
-}
-
-var bot *tgbotapi.BotAPI
-
 func main() {
 	log.Infof("Starting telegram-gateway %s-%s", appConfig.Version, buildTime)
 
@@ -341,7 +301,6 @@ func main() {
 	var err error
 
 	logLevel, err := log.ParseLevel(*appConfig.logLevel)
-
 	if err != nil {
 		log.Panic(err)
 	}
@@ -357,7 +316,9 @@ func main() {
 
 	if *appConfig.chatServer {
 		log.Info("Staring ChatServer")
+
 		u := tgbotapi.NewUpdate(0)
+
 		u.Timeout = 60
 
 		updates, _ := bot.GetUpdatesChan(u)
@@ -366,11 +327,12 @@ func main() {
 			if update.Message == nil { // ignore any non-Message Updates
 				continue
 			}
+
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("update.Message.Chat.ID=%d", update.Message.Chat.ID))
+
 			msg.ReplyToMessageID = update.Message.MessageID
 
 			_, err := bot.Send(msg)
-
 			if err != nil {
 				log.Error(err)
 			}
@@ -382,7 +344,9 @@ func main() {
 	http.HandleFunc("/message", message)
 	http.HandleFunc("/test", test)
 	log.Printf("Staring server on port %d", *appConfig.port)
+
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *appConfig.port), nil)
+
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

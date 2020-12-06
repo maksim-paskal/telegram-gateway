@@ -18,7 +18,7 @@ set -euo pipefail
 export CGO_ENABLED=0
 export GO111MODULE=on
 export TAGS=""
-export GOFLAGS=""
+export GOFLAGS="-trimpath"
 export LDFLAGS="-X main.buildTime=$(date +\"%Y%m%d%H%M%S\")"
 export TARGETS="darwin/amd64 linux/amd64"
 export BINNAME="telegram-gateway"
@@ -26,7 +26,7 @@ export GOX="go run github.com/mitchellh/gox"
 
 rm -rf _dist
 
-$GOX -parallel=3 -output="_dist/$BINNAME-{{.OS}}-{{.Arch}}/$BINNAME" -osarch="$TARGETS" $GOFLAGS -tags "$TAGS" -ldflags "$LDFLAGS"
+$GOX -parallel=3 -output="_dist/$BINNAME-{{.OS}}-{{.Arch}}/$BINNAME" -osarch="$TARGETS" -tags "$TAGS" -ldflags "$LDFLAGS" ./cmd
 
 cd _dist
 for dir in *
@@ -34,3 +34,4 @@ do
   base=$(basename "$dir")
   tar -czf "${base}.tar.gz" "$dir"
 done
+go mod tidy

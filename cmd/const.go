@@ -1,6 +1,6 @@
 /*
 Copyright paskal.maksim@gmail.com
-Licensed under the Apache License, Version 2.0 (the "License");
+Licensed under the Apache License, Version 2.0 (the "License")
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 http://www.apache.org/licenses/LICENSE-2.0
@@ -13,24 +13,6 @@ limitations under the License.
 
 package main
 
-import (
-	"testing"
-	"time"
+const (
+	ParseModeMarkdown = "Markdown"
 )
-
-func TestFormatTelegramMessage(t *testing.T) {
-	ans := formatTelegramMessage("a", "b")
-	right := "\n*a*``` b ```"
-	if ans != right {
-		t.Errorf("formatTelegramMessage = %s; want %s", ans, right)
-	}
-}
-
-func TestFormatDuration(t *testing.T) {
-	d, _ := time.ParseDuration("4h30m")
-	ans := formatDuration(d)
-	right := "4h30m0s"
-	if ans != right {
-		t.Errorf("formatTelegramMessage = %s; want %s", ans, right)
-	}
-}

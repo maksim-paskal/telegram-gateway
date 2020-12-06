@@ -1,16 +1,17 @@
-FROM golang:1.12 as build
+FROM golang:1.15 as build
 
-COPY *.go /usr/src/telegram-gateway/
+COPY ./cmd /usr/src/telegram-gateway/cmd
 COPY go.* /usr/src/telegram-gateway/
 
 ENV GOOS=linux
 ENV GOARCH=amd64
 ENV CGO_ENABLED=0
+ENV GOFLAGS="-trimpath"
 
 RUN cd /usr/src/telegram-gateway \
   && go mod download \
   && go mod verify \
-  && go build -v -o telegram-gateway -ldflags "-X main.buildTime=$(date +"%Y%m%d%H%M%S")"
+  && go build -v -o telegram-gateway -ldflags "-X main.buildTime=$(date +"%Y%m%d%H%M%S")" ./cmd
 
 FROM alpine:latest
 

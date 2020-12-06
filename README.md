@@ -37,3 +37,15 @@ alertmanagerFiles:
       - url: 'http://telegram-gateway.telegram-gateway.svc.cluster.local:9090/prom'
         send_resolved: true
 ```
+
+# use curl to test sending messages
+```
+for curl messages. example:
+
+curl -sS -X GET localhost:9090/message --get \
+--data-urlencode "test=value" \
+--data-urlencode "test.empty=" \
+--data-urlencode "url=https://test.com" \
+--data-urlencode "msg=hello world" \
+--data-urlencode "url.title=Open report".
+```
