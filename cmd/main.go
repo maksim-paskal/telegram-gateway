@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/gorilla/mux"
@@ -34,6 +35,11 @@ var (
 
 func main() {
 	flag.Parse()
+
+	if *appConfig.showVersion {
+		fmt.Println(appConfig.Version)
+		os.Exit(0)
+	}
 
 	var err error
 
