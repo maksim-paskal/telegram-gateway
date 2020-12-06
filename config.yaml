@@ -1,0 +1,7 @@
+domains:
+- name: default
+  token: 1072104160:AAH2sFpHELeH5oxMmd-tsVjgTuzoYO6hSLM
+  chatID: -479832859
+  clusterName: test
+  prometheusURL: https://prometheus.paskal-dev.com/alerts
+  alertManagerURL: https://alertmanager.paskal-dev.com

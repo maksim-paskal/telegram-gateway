@@ -22,11 +22,31 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/gorilla/mux"
 	template "github.com/prometheus/alertmanager/template"
 	log "github.com/sirupsen/logrus"
 )
 
 func handleProm(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	name := params["name"]
+	if len(name) == 0 {
+		name = DomainDefault
+	}
+
+	log.Debugf("name=%s", name)
+
+	domain := domains[name]
+
+	if len(domain.Name) == 0 {
+		err := ErrorNameNotFound
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error(err)
+
+		return
+	}
+
 	defer r.Body.Close()
 
 	var err error
@@ -54,8 +74,8 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 
 	message.WriteString(fmt.Sprintf("*status*: %s", strings.ToUpper(data.Status)))
 
-	if len(*appConfig.clusterName) > 0 {
-		message.WriteString(formatTelegramMessage("Cluster", *appConfig.clusterName))
+	if len(domain.ClusterName) > 0 {
+		message.WriteString(formatTelegramMessage("Cluster", domain.ClusterName))
 	}
 
 	if len(data.Alerts) > 0 {
@@ -87,7 +107,7 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 		message.WriteString(formatTelegramMessage(name, value))
 	}
 
-	msg := tgbotapi.NewMessage(*appConfig.chatID, message.String())
+	msg := tgbotapi.NewMessage(domain.ChatID, message.String())
 
 	msg.ParseMode = ParseModeMarkdown
 
@@ -95,17 +115,17 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 		var row []tgbotapi.InlineKeyboardButton
 
 		keyboard := tgbotapi.InlineKeyboardMarkup{}
-		btn1 := tgbotapi.NewInlineKeyboardButtonURL("Prometheus", *appConfig.prometheusURL)
+		btn1 := tgbotapi.NewInlineKeyboardButtonURL("Prometheus", domain.PrometheusURL)
 		row = append(row, btn1)
 
-		btn2 := tgbotapi.NewInlineKeyboardButtonURL("AlertManager", *appConfig.alertManagerURL)
+		btn2 := tgbotapi.NewInlineKeyboardButtonURL("AlertManager", domain.AlertManagerURL)
 		row = append(row, btn2)
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 
 		msg.ReplyMarkup = keyboard
 	}
 
-	_, err = bot.Send(msg)
+	_, err = domain.bot.Send(msg)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

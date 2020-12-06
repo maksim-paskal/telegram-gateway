@@ -13,6 +13,11 @@ limitations under the License.
 
 package main
 
+import "errors"
+
 const (
 	ParseModeMarkdown = "Markdown"
+	DomainDefault     = "default"
 )
+
+var ErrorNameNotFound = errors.New("name not found")

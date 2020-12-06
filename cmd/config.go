@@ -14,56 +14,41 @@ limitations under the License.
 package main
 
 import (
-	"os"
+	"flag"
+	"fmt"
 
-	"gopkg.in/alecthomas/kingpin.v2"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+type ConfigDomains struct {
+	Name            string `yaml:"name"`
+	Token           string `yaml:"token"`
+	ChatID          int64  `yaml:"chatID"`
+	ClusterName     string `yaml:"clusterName"`
+	PrometheusURL   string `yaml:"prometheusURL"`
+	AlertManagerURL string `yaml:"alertManagerURL"`
+	bot             *tgbotapi.BotAPI
+}
+
+type Config struct {
+	Domains []ConfigDomains `yaml:"domains"`
+}
+
 type appConfigType struct {
-	Version         string
-	port            *int
-	logLevel        *string
-	chatServer      *bool
-	chatToken       *string
-	chatID          *int64
-	alertManagerURL *string
-	prometheusURL   *string
-	clusterName     *string
+	Version        string
+	showVersion    *bool
+	port           *int
+	logLevel       *string
+	chatServer     *bool
+	configFileName *string
 }
 
 //nolint:gochecknoglobals
 var appConfig = appConfigType{
-	Version: "1.0.4",
-	port: kingpin.Flag(
-		"server.port",
-		"port",
-	).Default("9090").Int(),
-	logLevel: kingpin.Flag(
-		"log.level",
-		"log level",
-	).Default("INFO").String(),
-	chatServer: kingpin.Flag(
-		"enableChatServer",
-		"enableChatServer",
-	).Default("false").Bool(),
-	chatToken: kingpin.Flag(
-		"chat.token",
-		"chat.token",
-	).Default(os.Getenv("CHAT_TOKEN")).String(),
-	chatID: kingpin.Flag(
-		"chat.id",
-		"chat.id",
-	).Default(os.Getenv("CHAT_ID")).Int64(),
-	alertManagerURL: kingpin.Flag(
-		"alertmanager.url",
-		"alertmanager.url",
-	).Default("https://alertmanager.paskal-dev.com").String(),
-	prometheusURL: kingpin.Flag(
-		"prometheus.url",
-		"prometheus.url",
-	).Default("https://prometheus.paskal-dev.com/alerts").String(),
-	clusterName: kingpin.Flag(
-		"cluster.name",
-		"cluster.name",
-	).String(),
+	Version:        fmt.Sprintf("%s-%s", gitVersion, buildTime),
+	showVersion:    flag.Bool("version", false, "show version"),
+	port:           flag.Int("server.port", 9090, "server port"),
+	logLevel:       flag.String("log.level", "INFO", "log level"),
+	chatServer:     flag.Bool("enableChatServer", false, "enableChatServer"),
+	configFileName: flag.String("config", "config.yaml", "config yaml path"),
 }

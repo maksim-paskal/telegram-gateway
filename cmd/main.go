@@ -14,26 +14,26 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/yaml.v2"
 )
 
 //nolint:gochecknoglobals
 var (
-	buildTime string
-	bot       *tgbotapi.BotAPI
+	gitVersion string = "dev"
+	buildTime  string
+	domains    map[string]ConfigDomains
 )
 
 func main() {
-	log.Infof("Starting telegram-gateway %s-%s", appConfig.Version, buildTime)
-
-	kingpin.Version(appConfig.Version)
-	kingpin.HelpFlag.Short('h')
-	kingpin.Parse()
+	flag.Parse()
 
 	var err error
 
@@ -44,47 +44,98 @@ func main() {
 
 	log.SetLevel(logLevel)
 
-	bot, err = tgbotapi.NewBotAPI(*appConfig.chatToken)
-	if err != nil {
-		log.Panic(err)
+	if logLevel == log.DebugLevel {
+		log.SetReportCaller(true)
 	}
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	log.Infof("Starting telegram-gateway %s", appConfig.Version)
 
-	if *appConfig.chatServer {
-		log.Info("Staring ChatServer")
+	// load config file
+	yamlFile, err := ioutil.ReadFile(*appConfig.configFileName)
+	if err != nil {
+		log.Fatalf("error in reading config %s, %v", *appConfig.configFileName, err)
+	}
 
-		u := tgbotapi.NewUpdate(0)
+	log.Debugf("using config file:\n%s", string(yamlFile))
 
-		u.Timeout = 60
+	config := Config{}
+	err = yaml.Unmarshal(yamlFile, &config)
 
-		updates, _ := bot.GetUpdatesChan(u)
+	if err != nil {
+		log.Fatal("error in Unmarshal", err)
+	}
 
-		for update := range updates {
-			if update.Message == nil { // ignore any non-Message Updates
-				continue
-			}
+	domains = make(map[string]ConfigDomains)
 
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("update.Message.Chat.ID=%d", update.Message.Chat.ID))
+	for _, domain := range config.Domains {
+		bot, err := tgbotapi.NewBotAPI(domain.Token)
+		if err != nil {
+			log.Panicf("error connecting to bot %s, %v", domain.Name, err)
+		}
 
-			msg.ReplyToMessageID = update.Message.MessageID
+		log.Printf("Authorized on account %s", bot.Self.UserName)
 
-			_, err := bot.Send(msg)
-			if err != nil {
-				log.Error(err)
-			}
+		domain.bot = bot
+		domains[domain.Name] = domain
+
+		if log.GetLevel() <= log.DebugLevel {
+			log.Debug("add debug to bot")
+
+			bot.Debug = true
 		}
 	}
 
-	http.HandleFunc("/prom", handleProm)
-	http.HandleFunc("/sentry", handleSentry)
-	http.HandleFunc("/message", handleMessage)
-	http.HandleFunc("/test", handleTest)
+	if *appConfig.chatServer {
+		startChatServer()
+	}
+
+	router := mux.NewRouter()
+	router.HandleFunc("/{name}/prom", handleProm)
+	router.HandleFunc("/{name}/sentry", handleSentry)
+	router.HandleFunc("/{name}/message", handleMessage)
+	router.HandleFunc("/{name}/test", handleTest)
+	// default routes
+	router.HandleFunc("/prom", handleProm)
+	router.HandleFunc("/sentry", handleSentry)
+	router.HandleFunc("/message", handleMessage)
+	router.HandleFunc("/test", handleTest)
+
 	log.Printf("Staring server on port %d", *appConfig.port)
 
-	err = http.ListenAndServe(fmt.Sprintf(":%d", *appConfig.port), nil)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", *appConfig.port), router)
 
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
+func startChatServer() {
+	log.Info("Staring ChatServer")
+
+	domain := domains[DomainDefault]
+	u := tgbotapi.NewUpdate(0)
+
+	u.Timeout = 60
+
+	updates, err := domain.bot.GetUpdatesChan(u)
+	if err != nil {
+		log.Error(err)
+	}
+
+	log.Debug("range updates")
+
+	for update := range updates {
+		if update.Message == nil { // ignore any non-Message Updates
+			continue
+		}
+
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("update.Message.Chat.ID=%d", update.Message.Chat.ID))
+
+		msg.ReplyToMessageID = update.Message.MessageID
+
+		_, err := domain.bot.Send(msg)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 }

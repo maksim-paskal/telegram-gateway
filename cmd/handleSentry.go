@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,6 +39,25 @@ type sentryStruct struct {
 }
 
 func handleSentry(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	name := params["name"]
+	if len(name) == 0 {
+		name = DomainDefault
+	}
+
+	log.Debugf("name=%s", name)
+
+	domain := domains[name]
+
+	if len(domain.Name) == 0 {
+		err := ErrorNameNotFound
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error(err)
+
+		return
+	}
+
 	defer r.Body.Close()
 
 	var err error
@@ -78,7 +98,7 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 		message.WriteString(formatTelegramMessage(fmt.Sprintf("tag=\"%s\"", tag[0]), tag[1]))
 	}
 
-	msg := tgbotapi.NewMessage(*appConfig.chatID, message.String())
+	msg := tgbotapi.NewMessage(domain.ChatID, message.String())
 	msg.ParseMode = ParseModeMarkdown
 
 	var row []tgbotapi.InlineKeyboardButton
@@ -91,7 +111,7 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 
 	msg.ReplyMarkup = keyboard
 
-	_, err = bot.Send(msg)
+	_, err = domain.bot.Send(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)

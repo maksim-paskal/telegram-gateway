@@ -18,15 +18,33 @@ import (
 	"net/http"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
 func handleTest(w http.ResponseWriter, r *http.Request) {
-	msg := tgbotapi.NewMessage(*appConfig.chatID, "*test*")
+	params := mux.Vars(r)
+
+	name := params["name"]
+	if len(name) == 0 {
+		name = DomainDefault
+	}
+
+	domain := domains[name]
+
+	if len(domain.Name) == 0 {
+		err := ErrorNameNotFound
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error(err)
+
+		return
+	}
+
+	msg := tgbotapi.NewMessage(domain.ChatID, "*test*")
 
 	msg.ParseMode = ParseModeMarkdown
 
-	_, err := bot.Send(msg)
+	_, err := domain.bot.Send(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)
