@@ -91,6 +91,10 @@ func main() {
 		}
 	}
 
+	if len(domains[DomainDefault].Name) == 0 {
+		log.Fatalf("in configuration has no %s domain", DomainDefault)
+	}
+
 	if *appConfig.chatServer {
 		startChatServer()
 	}
