@@ -58,8 +58,6 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
-
 	var err error
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -69,6 +67,8 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	r.Body.Close()
 
 	if log.GetLevel() == log.DebugLevel {
 		log.Debug(string(bodyBytes))
@@ -114,9 +114,7 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 	_, err = domain.bot.Send(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
-
-		return
+		log.Fatal(err)
 	}
 
 	_, err = w.Write([]byte("OK"))

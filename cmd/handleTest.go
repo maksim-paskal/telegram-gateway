@@ -47,15 +47,18 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	_, err := domain.bot.Send(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(err)
 
 		return
 	}
 
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+	r.Body.Close()
 
 	bodyString := string(bodyBytes)
 	log.Info(bodyString)

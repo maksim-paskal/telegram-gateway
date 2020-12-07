@@ -145,7 +145,7 @@ func startChatServer() {
 
 		_, err := domain.bot.Send(msg)
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	}
 }

@@ -42,8 +42,6 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
-
 	var err error
 
 	var message strings.Builder
@@ -78,9 +76,7 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
-
-		return
+		log.Fatal(err)
 	}
 
 	_, err = w.Write([]byte("OK"))
