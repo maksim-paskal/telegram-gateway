@@ -27,7 +27,7 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 
 	name := params["name"]
 	if len(name) == 0 {
-		name = DomainDefault
+		name = *appConfig.defaultDomain
 	}
 
 	log.Debugf("name=%s", name)
@@ -37,7 +37,7 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 	if len(domain.Name) == 0 {
 		err := ErrorNameNotFound
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
@@ -58,7 +58,7 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Query()["url"]) > 0 {
 		keyboard := tgbotapi.InlineKeyboardMarkup{}
 
-		var row []tgbotapi.InlineKeyboardButton
+		row := []tgbotapi.InlineKeyboardButton{}
 
 		caption := "Open"
 
@@ -76,13 +76,16 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.WithError(err).Error()
+
+		return
 	}
 
 	_, err = w.Write([]byte("OK"))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 	}
 }

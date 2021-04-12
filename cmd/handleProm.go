@@ -32,7 +32,7 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 
 	name := params["name"]
 	if len(name) == 0 {
-		name = DomainDefault
+		name = *appConfig.defaultDomain
 	}
 
 	log.Debugf("name=%s", name)
@@ -42,7 +42,7 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 	if len(domain.Name) == 0 {
 		err := ErrorNameNotFound
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
@@ -52,15 +52,15 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
 
 	r.Body.Close()
 
-	if log.GetLevel() == log.DebugLevel {
-		log.Debug(string(bodyBytes))
+	if log.GetLevel() >= log.DebugLevel {
+		fmt.Println(string(bodyBytes)) //nolint:forbidigo
 	}
 
 	data := template.Data{}
@@ -74,8 +74,8 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 
 	message.WriteString(fmt.Sprintf("*status*: %s", strings.ToUpper(data.Status)))
 
-	if len(domain.ClusterName) > 0 {
-		message.WriteString(formatTelegramMessage("Cluster", domain.ClusterName))
+	for _, extraLabels := range domain.ExtraLabels {
+		message.WriteString(formatTelegramMessage(extraLabels.Name, extraLabels.Value))
 	}
 
 	if len(data.Alerts) > 0 {
@@ -95,31 +95,44 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 		message.WriteString(formatTelegramMessage("Alert Count", fmt.Sprintf("%d", len(data.Alerts))))
 	}
 
+	alertLabels := make(map[string]string)
+
 	for i := range data.CommonAnnotations.Names() {
 		name := data.CommonAnnotations.Names()[i]
 		value := data.CommonAnnotations.Values()[i]
 		message.WriteString(formatTelegramMessage(name, value))
+		alertLabels[strings.ToLower(name)] = value
 	}
 
 	for i := range data.CommonLabels.Names() {
 		name := data.CommonLabels.Names()[i]
 		value := data.CommonLabels.Values()[i]
 		message.WriteString(formatTelegramMessage(name, value))
+		alertLabels[strings.ToLower(name)] = value
 	}
 
 	msg := tgbotapi.NewMessage(domain.ChatID, message.String())
 
 	msg.ParseMode = ParseModeMarkdown
 
-	if strings.ToUpper(data.Status) != "RESOLVED" {
-		var row []tgbotapi.InlineKeyboardButton
+	if strings.ToUpper(data.Status) != "RESOLVED" && len(domain.PrometheusButtons) > 0 {
+		row := []tgbotapi.InlineKeyboardButton{}
 
 		keyboard := tgbotapi.InlineKeyboardMarkup{}
-		btn1 := tgbotapi.NewInlineKeyboardButtonURL("Prometheus", domain.PrometheusURL)
-		row = append(row, btn1)
 
-		btn2 := tgbotapi.NewInlineKeyboardButtonURL("AlertManager", domain.AlertManagerURL)
-		row = append(row, btn2)
+		for _, button := range domain.PrometheusButtons {
+			url, err := templateString(button.Value, alertLabels)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.WithError(err).Error()
+
+				return
+			}
+
+			btn := tgbotapi.NewInlineKeyboardButtonURL(button.Name, url)
+			row = append(row, btn)
+		}
+
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 
 		msg.ReplyMarkup = keyboard
@@ -129,13 +142,15 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Fatal(err)
+		log.WithError(err).Error()
+
+		return
 	}
 
 	_, err = w.Write([]byte("OK"))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 	}
 }

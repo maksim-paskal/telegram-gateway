@@ -27,7 +27,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 
 	name := params["name"]
 	if len(name) == 0 {
-		name = DomainDefault
+		name = *appConfig.defaultDomain
 	}
 
 	domain := domains[name]
@@ -35,7 +35,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	if len(domain.Name) == 0 {
 		err := ErrorNameNotFound
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
@@ -47,13 +47,13 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	_, err := domain.bot.Send(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Fatal(err)
+		log.WithError(err).Error()
 	}
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
@@ -67,6 +67,6 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 	}
 }

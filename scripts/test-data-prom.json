@@ -1,0 +1,44 @@
+{
+  "receiver": "prod-notify",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "FilesystemFree",
+        "device": "/dev/mapper/vg1-lv_mysql",
+        "fstype": "ext4",
+        "instance": "mon-rc-chat-slave",
+        "job": "rc-prod",
+        "mountpoint": "/mnt/mysql",
+        "severity": "critical"
+      },
+      "annotations": {
+        "description": "Server disk will fill in 1h"
+      },
+      "startsAt": "2021-04-12T14:28:51.145674947Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "https://prometheus/graph?g0.expr=predict_linear%28node_filesystem_avail_bytes%7Bjob%21%3D%22kubernetes-service-endpoints%22%7D%5B1h%5D%2C+1+%2A+3600%29+%3C+0\u0026g0.tab=1",
+      "fingerprint": "3254798a1e519c1b"
+    }
+  ],
+  "groupLabels": {
+    "alertname": "FilesystemFree"
+  },
+  "commonLabels": {
+    "alertname": "FilesystemFree",
+    "device": "/dev/mapper/vg1-lv_mysql",
+    "fstype": "ext4",
+    "instance": "mon-rc-chat-slave",
+    "job": "rc-prod",
+    "mountpoint": "/mnt/mysql",
+    "severity": "critical"
+  },
+  "commonAnnotations": {
+    "description": "Server disk will fill in 1h"
+  },
+  "externalURL": "http://localhost:9093",
+  "version": "4",
+  "groupKey": "{}:{alertname=\"FilesystemFree\"}",
+  "truncatedAlerts": 0
+}

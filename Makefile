@@ -1,14 +1,18 @@
-export GO111MODULE = on
-
 test:
 	@scripts/validate-license.sh
 	go mod tidy
 	go fmt ./cmd
-	go test ./cmd
-	golangci-lint run --allow-parallel-runners -v --enable-all --disable testpackage,funlen --fix
+	go test -race ./cmd
+	golangci-lint run -v
 build:
 	docker build . -t paskalmaksim/telegram-gateway:dev
-build-all:
-	@scripts/build-all.sh
+push:
+	docker push paskalmaksim/telegram-gateway:dev
 run:
-	GOFLAGS="-trimpath" go build -v -o /tmp/telegram-gateway ./cmd && /tmp/telegram-gateway --log.level=DEBUG $(args)
+	go run -race -v ./cmd --log.level=DEBUG --log.pretty $(args)
+testProm:
+	curl -H "Content-Type: application/json" --data @scripts/test-data-prom.json http://localhost:9090/prom
+testSentry:
+	curl -H "Content-Type: application/json" --data @scripts/test-data-sentry.json http://localhost:9090/sentry
+heap:
+	go tool pprof -http=127.0.0.1:8080 http://localhost:9090/debug/pprof/heap
