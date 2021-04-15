@@ -22,7 +22,7 @@ func TestFormatTelegramMessage(t *testing.T) {
 
 	ans := formatTelegramMessage("a", "b")
 
-	right := "\n*a*``` b ```"
+	const right = "\n*a*``` b ```"
 
 	if ans != right {
 		t.Errorf("formatTelegramMessage = %s; want %s", ans, right)
@@ -33,11 +33,27 @@ func TestFormatDuration(t *testing.T) {
 	t.Parallel()
 
 	d, _ := time.ParseDuration("4h30m")
-	ans := formatDuration(d)
 
-	right := "4h30m0s"
+	const right = "4h30m0s"
 
-	if ans != right {
+	if ans := formatDuration(d); ans != right {
 		t.Errorf("formatTelegramMessage = %s; want %s", ans, right)
+	}
+}
+
+func TestTextTemplate(t *testing.T) {
+	t.Parallel()
+
+	data := make(map[string]string)
+
+	data["test"] = "My Test Value"
+
+	ans, err := templateString("test {{ .test | ToLower }}", data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if right := "test my test value"; ans != right {
+		t.Errorf("templateString = %s; want %s", ans, right)
 	}
 }

@@ -15,23 +15,63 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+type ExtraLabels struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
+}
+
+type TelegramButton struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
+}
+
 type ConfigDomains struct {
-	Name            string `yaml:"name"`
-	Token           string `yaml:"token"`
-	ChatID          int64  `yaml:"chatID"`
-	ClusterName     string `yaml:"clusterName"`
-	PrometheusURL   string `yaml:"prometheusURL"`
-	AlertManagerURL string `yaml:"alertManagerURL"`
-	bot             *tgbotapi.BotAPI
+	// name of domain
+	Name string `yaml:"name"`
+	// telegram token
+	Token string `yaml:"token"`
+	// telegram chatID
+	ChatID int64 `yaml:"chatID"`
+	// add labels to alert
+	ExtraLabels []ExtraLabels `yaml:"extraLabels"`
+	// add buttons to prometheus alerts
+	PrometheusButtons []TelegramButton `yaml:"prometheusButtons"`
+	// add buttons to prometheus alerts
+	SentryButtons []TelegramButton `yaml:"sentryButtons"`
+	// pointer to BotAPI
+	bot *tgbotapi.BotAPI
 }
 
 type Config struct {
+	// defaults values to all domains
+	Defaults ConfigDomains `yaml:"defaults"`
+	// telegram domains
 	Domains []ConfigDomains `yaml:"domains"`
+}
+
+// add defaults values to domains.
+func (config *Config) fillDefaults() {
+	for i, domain := range config.Domains {
+		if len(domain.ExtraLabels) == 0 {
+			config.Domains[i].ExtraLabels = config.Defaults.ExtraLabels
+		}
+
+		if len(domain.Token) == 0 {
+			config.Domains[i].Token = config.Defaults.Token
+		}
+
+		if len(domain.PrometheusButtons) == 0 {
+			config.Domains[i].PrometheusButtons = config.Defaults.PrometheusButtons
+		}
+
+		if len(domain.SentryButtons) == 0 {
+			config.Domains[i].SentryButtons = config.Defaults.SentryButtons
+		}
+	}
 }
 
 type appConfigType struct {
@@ -39,16 +79,20 @@ type appConfigType struct {
 	showVersion    *bool
 	port           *int
 	logLevel       *string
+	logPretty      *bool
 	chatServer     *bool
+	defaultDomain  *string
 	configFileName *string
 }
 
 //nolint:gochecknoglobals
 var appConfig = appConfigType{
-	Version:        fmt.Sprintf("%s-%s", gitVersion, buildTime),
+	Version:        gitVersion,
 	showVersion:    flag.Bool("version", false, "show version"),
 	port:           flag.Int("server.port", 9090, "server port"),
 	logLevel:       flag.String("log.level", "INFO", "log level"),
+	logPretty:      flag.Bool("log.pretty", false, "log in pretty format"),
 	chatServer:     flag.Bool("enableChatServer", false, "enableChatServer"),
+	defaultDomain:  flag.String("defaultDomain", "default", "domain for default"),
 	configFileName: flag.String("config", "config.yaml", "config yaml path"),
 }

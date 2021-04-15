@@ -1,7 +1,21 @@
+defaults:
+  token: 1072104160:AAH2sFpHELeH5oxMmd-tsVjgTuzoYO6hSLM
+  extraLabels:
+  - name: Cluster
+    value: "someDev"
+  sentryButtons:
+  - name: Logs
+    value: "https://test.com"
+  - name: Traces
+    value: "https://test.com"
+  prometheusButtons:
+  - name: Prometheus
+    value: "https://test.com"
+  - name: AlertManager
+    value: "https://test.com"
+  - name: Info
+    value: "https://test.com#{{ .alertname | ToLower }}"
+
 domains:
 - name: default
-  token: 1072104160:AAH2sFpHELeH5oxMmd-tsVjgTuzoYO6hSLM
   chatID: -479832859
-  clusterName: test
-  prometheusURL: https://prometheus.paskal-dev.com/alerts
-  alertManagerURL: https://alertmanager.paskal-dev.com

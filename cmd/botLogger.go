@@ -13,10 +13,16 @@ limitations under the License.
 
 package main
 
-import "errors"
-
-const (
-	ParseModeMarkdown = "Markdown"
+import (
+	log "github.com/sirupsen/logrus"
 )
 
-var ErrorNameNotFound = errors.New("name not found")
+type BotLogger struct{}
+
+func (*BotLogger) Println(v ...interface{}) {
+	log.Debug(v...)
+}
+
+func (*BotLogger) Printf(format string, v ...interface{}) {
+	log.Debugf(format, v...)
+}

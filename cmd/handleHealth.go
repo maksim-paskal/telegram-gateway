@@ -13,10 +13,15 @@ limitations under the License.
 
 package main
 
-import "errors"
+import (
+	"net/http"
 
-const (
-	ParseModeMarkdown = "Markdown"
+	log "github.com/sirupsen/logrus"
 )
 
-var ErrorNameNotFound = errors.New("name not found")
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
+	if _, err := w.Write([]byte("OK")); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.WithError(err).Error()
+	}
+}

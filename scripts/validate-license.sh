@@ -22,7 +22,7 @@ find_files() {
       -o -wholename '*third_party*' \
     \) -prune \
   \) \
-  \( -name '*.go' -o -name '*.sh' \)
+  \( -name '*.go' -o -name '*.sh' -o -name 'LICENSE' \)
 }
 
 # Use "|| :" to ignore the error code when grep returns empty
@@ -38,5 +38,10 @@ failed_copyright_header=($(find_files | xargs grep -L 'Copyright paskal.maksim@g
 if (( ${#failed_copyright_header[@]} > 0 )); then
   echo "Some source files are missing the copyright header."
   printf '%s\n' "${failed_copyright_header[@]}"
+  exit 1
+fi
+
+if grep --exclude-dir=.git --exclude=validate-license.sh -rn . -e 'alldigital'; then
+  echo "Some files have bad links"
   exit 1
 fi

@@ -1,15 +1,10 @@
-# Background
+# Motivation
 Prometheus and Sentry has no adapters for sending telegram messages for Ops peoples
 
 # Install in your kubernetes cluster
 ```
 helm repo add paskal-dev https://maksim-paskal.github.io/helm/
-
-# standart installation
 helm install --namespace telegram-gateway paskal-dev/telegram-gateway
-
-# installation without tiller
-helm template --namespace telegram-gateway paskal-dev/telegram-gateway | kubectl apply --dry-run -f -
 ```
 
 # Prometheus configuration
@@ -49,3 +44,10 @@ curl -sS -X GET localhost:9090/message --get \
 --data-urlencode "msg=hello world" \
 --data-urlencode "url.title=Open report".
 ```
+
+# how to create new telegram group with bot
+* create new telegram group 
+* add youp telegram bot to new group
+* create config with bot token
+* start application with `-enableChatServer`
+* in telegram group will be shown new `chatID` in new group

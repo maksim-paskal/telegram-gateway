@@ -18,18 +18,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	pprof "net/http/pprof"
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/gorilla/mux"
+	logrushooksentry "github.com/maksim-paskal/logrus-hook-sentry"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 //nolint:gochecknoglobals
 var (
-	gitVersion string = "dev"
-	buildTime  string
+	gitVersion = "dev"
 	domains    map[string]ConfigDomains
 )
 
@@ -37,7 +38,7 @@ func main() {
 	flag.Parse()
 
 	if *appConfig.showVersion {
-		fmt.Println(appConfig.Version)
+		fmt.Println(appConfig.Version) //nolint:forbidigo
 		os.Exit(0)
 	}
 
@@ -48,7 +49,21 @@ func main() {
 		log.Panic(err)
 	}
 
+	hook, err := logrushooksentry.NewHook(logrushooksentry.Options{
+		Release: appConfig.Version,
+	})
+	if err != nil {
+		log.WithError(err).Fatal()
+	}
+
+	log.AddHook(hook)
+
 	log.SetLevel(logLevel)
+	log.SetReportCaller(true)
+
+	if !*appConfig.logPretty {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
 
 	if logLevel == log.DebugLevel {
 		log.SetReportCaller(true)
@@ -59,16 +74,31 @@ func main() {
 	// load config file
 	yamlFile, err := ioutil.ReadFile(*appConfig.configFileName)
 	if err != nil {
-		log.Fatalf("error in reading config %s, %v", *appConfig.configFileName, err)
+		log.WithError(err).Fatalf("error in reading config %s", *appConfig.configFileName)
 	}
-
-	log.Debugf("using config file:\n%s", string(yamlFile))
 
 	config := Config{}
 	err = yaml.Unmarshal(yamlFile, &config)
 
 	if err != nil {
-		log.Fatal("error in Unmarshal", err)
+		log.WithError(err).Fatal("error in Unmarshal")
+	}
+
+	config.fillDefaults()
+
+	if log.GetLevel() >= log.DebugLevel {
+		configYaml, err := yaml.Marshal(config)
+		if err != nil {
+			log.WithError(err).Error()
+		}
+
+		log.Debug("using config\n", string(configYaml))
+	}
+
+	err = tgbotapi.SetLogger(&BotLogger{})
+
+	if err != nil {
+		log.WithError(err).Fatal("error in setting logger")
 	}
 
 	domains = make(map[string]ConfigDomains)
@@ -76,23 +106,23 @@ func main() {
 	for _, domain := range config.Domains {
 		bot, err := tgbotapi.NewBotAPI(domain.Token)
 		if err != nil {
-			log.Panicf("error connecting to bot %s, %v", domain.Name, err)
+			log.Panicf("[domain=%s] error connecting to bot %v", domain.Name, err)
 		}
 
-		log.Printf("Authorized on account %s", bot.Self.UserName)
+		log.Printf("[domain=%s] Authorized on account %s", domain.Name, bot.Self.UserName)
 
 		domain.bot = bot
 		domains[domain.Name] = domain
 
-		if log.GetLevel() <= log.DebugLevel {
-			log.Debug("add debug to bot")
+		if log.GetLevel() >= log.DebugLevel {
+			log.Debugf("[domain=%s] add debug to bot", domain.Name)
 
 			bot.Debug = true
 		}
 	}
 
-	if len(domains[DomainDefault].Name) == 0 {
-		log.Fatalf("in configuration has no %s domain", DomainDefault)
+	if len(domains[*appConfig.defaultDomain].Name) == 0 {
+		log.WithError(err).Fatalf("in configuration has no default domain (%s)", *appConfig.defaultDomain)
 	}
 
 	if *appConfig.chatServer {
@@ -109,27 +139,39 @@ func main() {
 	router.HandleFunc("/sentry", handleSentry)
 	router.HandleFunc("/message", handleMessage)
 	router.HandleFunc("/test", handleTest)
+	router.HandleFunc("/healthz", handleHealthz)
+
+	// pprof
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+	router.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	router.Handle("/debug/pprof/block", pprof.Handler("block"))
 
 	log.Printf("Staring server on port %d", *appConfig.port)
 
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *appConfig.port), router)
 
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.WithError(err).Fatal("ListenAndServe")
 	}
 }
 
 func startChatServer() {
 	log.Info("Staring ChatServer")
 
-	domain := domains[DomainDefault]
+	domain := domains[*appConfig.defaultDomain]
 	u := tgbotapi.NewUpdate(0)
 
 	u.Timeout = 60
 
 	updates, err := domain.bot.GetUpdatesChan(u)
 	if err != nil {
-		log.Error(err)
+		log.WithError(err).Error()
 	}
 
 	log.Debug("range updates")
@@ -145,7 +187,7 @@ func startChatServer() {
 
 		_, err := domain.bot.Send(msg)
 		if err != nil {
-			log.Fatal(err)
+			log.WithError(err).Fatal()
 		}
 	}
 }

@@ -43,7 +43,7 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 
 	name := params["name"]
 	if len(name) == 0 {
-		name = DomainDefault
+		name = *appConfig.defaultDomain
 	}
 
 	log.Debugf("name=%s", name)
@@ -53,7 +53,7 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 	if len(domain.Name) == 0 {
 		err := ErrorNameNotFound
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
@@ -63,15 +63,15 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
 
 	r.Body.Close()
 
-	if log.GetLevel() == log.DebugLevel {
-		log.Debug(string(bodyBytes))
+	if log.GetLevel() >= log.DebugLevel {
+		fmt.Println(string(bodyBytes)) //nolint:forbidigo
 	}
 
 	var data sentryStruct
@@ -79,7 +79,7 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 
 		return
 	}
@@ -94,18 +94,37 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 
 	message.WriteString(formatTelegramMessage("Title", data.Event.Title))
 
+	alertLabels := make(map[string]string)
+
 	for _, tag := range data.Event.Tags {
 		message.WriteString(formatTelegramMessage(fmt.Sprintf("tag=\"%s\"", tag[0]), tag[1]))
+		alertLabels[tag[0]] = tag[1]
 	}
 
 	msg := tgbotapi.NewMessage(domain.ChatID, message.String())
 	msg.ParseMode = ParseModeMarkdown
 
-	var row []tgbotapi.InlineKeyboardButton
+	row := []tgbotapi.InlineKeyboardButton{}
 
 	keyboard := tgbotapi.InlineKeyboardMarkup{}
+
+	// add Open Sentry button
 	btn1 := tgbotapi.NewInlineKeyboardButtonURL("Open Sentry", data.URL)
 	row = append(row, btn1)
+
+	// add extra buttons
+	for _, button := range domain.SentryButtons {
+		url, err := templateString(button.Value, alertLabels)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.WithError(err).Error()
+
+			return
+		}
+
+		btn := tgbotapi.NewInlineKeyboardButtonURL(button.Name, url)
+		row = append(row, btn)
+	}
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 
@@ -114,13 +133,15 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 	_, err = domain.bot.Send(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Fatal(err)
+		log.WithError(err).Error()
+
+		return
 	}
 
 	_, err = w.Write([]byte("OK"))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(err)
+		log.WithError(err).Error()
 	}
 }
