@@ -4,7 +4,11 @@ test:
 	go fmt ./cmd
 	go test -race ./cmd
 	golangci-lint run -v
+test-release:
+	goreleaser release --snapshot --skip-publish --rm-dist
 build:
+	goreleaser build --rm-dist --skip-validate
+	mv ./dist/telegram-gateway_linux_amd64/telegram-gateway telegram-gateway
 	docker build . -t paskalmaksim/telegram-gateway:dev
 push:
 	docker push paskalmaksim/telegram-gateway:dev

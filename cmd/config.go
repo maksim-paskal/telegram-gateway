@@ -35,7 +35,7 @@ type ConfigDomains struct {
 	// telegram token
 	Token string `yaml:"token"`
 	// telegram chatID
-	ChatID int64 `yaml:"chatID"`
+	ChatID int64 `yaml:"chatID"` //nolint:tagliatelle
 	// add labels to alert
 	ExtraLabels []ExtraLabels `yaml:"extraLabels"`
 	// add buttons to prometheus alerts
@@ -89,7 +89,7 @@ type appConfigType struct {
 var appConfig = appConfigType{
 	Version:        gitVersion,
 	showVersion:    flag.Bool("version", false, "show version"),
-	port:           flag.Int("server.port", 9090, "server port"),
+	port:           flag.Int("server.port", defaultPort, "server port"),
 	logLevel:       flag.String("log.level", "INFO", "log level"),
 	logPretty:      flag.Bool("log.pretty", false, "log in pretty format"),
 	chatServer:     flag.Bool("enableChatServer", false, "enableChatServer"),

@@ -17,6 +17,7 @@ import "errors"
 
 const (
 	ParseModeMarkdown = "Markdown"
+	defaultPort       = 9090
 )
 
 var ErrorNameNotFound = errors.New("name not found")
