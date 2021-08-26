@@ -51,7 +51,7 @@ func handleSentry(w http.ResponseWriter, r *http.Request) {
 	domain := domains[name]
 
 	if len(domain.Name) == 0 {
-		err := ErrorNameNotFound
+		err := ErrNameNotFound
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.WithError(err).Error()
 

@@ -20,4 +20,4 @@ const (
 	defaultPort       = 9090
 )
 
-var ErrorNameNotFound = errors.New("name not found")
+var ErrNameNotFound = errors.New("name not found")
