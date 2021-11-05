@@ -10,3 +10,4 @@ linters:
   - cyclop
   - exhaustivestruct
   - wrapcheck
+  - varnamelen

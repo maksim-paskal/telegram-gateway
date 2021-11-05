@@ -1,0 +1,4 @@
+apiVersion: v2
+icon: https://helm.sh/img/helm.svg
+name: telegram-gateway
+version: 1.0.1
