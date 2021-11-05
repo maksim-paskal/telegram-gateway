@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegram-gateway-config
+  labels:
+    app: telegram-gateway
+data:
+  telegram-gateway.yaml: |-
+{{ toYaml .Values.config | indent 5 }}

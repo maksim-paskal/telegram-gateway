@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-gateway
+  labels:
+    app: telegram-gateway
+spec:
+  selector:
+    matchLabels:
+      app: telegram-gateway
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      labels:
+        app: telegram-gateway
+    spec:
+      topologySpreadConstraints:
+{{ toYaml .Values.topologySpreadConstraints | indent 7 }}
+      affinity:
+{{ toYaml .Values.affinity | indent 7 }}
+      volumes:
+      - name: telegram-gateway-config
+        configMap:
+          name: telegram-gateway-config
+      containers:
+      - name: telegram-gateway
+        resources:
+{{ toYaml .Values.resources | indent 9 }}
+        image: {{ .Values.registry.image }}
+        imagePullPolicy: {{ .Values.registry.imagePullPolicy }}
+        command:
+        - /usr/local/bin/telegram-gateway
+        - -config=/config/telegram-gateway.yaml
+{{- if .Values.args }}
+{{ toYaml .Values.args | indent 8 }}
+{{- end }}
+        env:
+{{ toYaml .Values.env | indent 9 }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 9090
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: telegram-gateway-config
+          mountPath: "/config/"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegram-gateway
+  labels:
+    app: telegram-gateway
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: 9090
+    protocol: TCP
+  selector:
+    app: telegram-gateway
+---
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: telegram-gateway
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: telegram-gateway
+{{- end }}

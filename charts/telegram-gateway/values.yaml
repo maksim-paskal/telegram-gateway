@@ -1,0 +1,72 @@
+registry:
+  image: paskalmaksim/telegram-gateway:v1.0.6
+  imagePullPolicy: IfNotPresent
+
+replicas: 2
+
+config:
+  defaults:
+    token: 1072104160:AAH2sFpHELeH5oxMmd-tsVjgTuzoYO6hSLM
+    extraLabels: []
+    # - name: Cluster
+    #   value: "someDev"
+    sentryButtons:
+    - name: Logs
+      value: "https://test.com"
+    - name: Traces
+      value: "https://test.com"
+    prometheusButtons:
+    - name: Prometheus
+      value: "https://test.com"
+    - name: AlertManager
+      value: "https://test.com"
+    - name: Info
+      value: "https://test.com#{{ .alertname | ToLower }}"
+
+domains:
+- name: default
+  chatID: -479832859
+
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: DoNotSchedule
+  labelSelector:
+    matchLabels:
+      app: telegram-gateway
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - telegram-gateway
+      topologyKey: kubernetes.io/hostname
+
+args: []
+env: []
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+telegram:
+- name: "telegram-gateway"
+  cluster_name: "dev"
+  token: "1072104160:AAH2sFpHELeH5oxMmd-tsVjgTuzoYO6hSLM"
+  chat_id: "-479832859"
+  urls:
+    alertmanager: "https://test"
+    prometheus: "https://test"
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    memory: "20Mi"
+  limits:
+    memory: "20Mi"
