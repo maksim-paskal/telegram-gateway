@@ -1,0 +1,12 @@
+apiVersion: v1
+entries:
+  telegram-gateway:
+  - apiVersion: v2
+    created: "2021-11-05T12:18:08.188779794Z"
+    digest: 34df1c23a1d4f3cef0d8decc9e6815e934526d3398be71a13a1a66b680dc9d72
+    icon: https://helm.sh/img/helm.svg
+    name: telegram-gateway
+    urls:
+    - https://github.com/maksim-paskal/telegram-gateway/releases/download/helm-chart-1.0.1/telegram-gateway-1.0.1.tgz
+    version: 1.0.1
+generated: "2021-11-05T12:18:08.026128059Z"
