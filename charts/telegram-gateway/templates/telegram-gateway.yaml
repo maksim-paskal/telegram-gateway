@@ -11,6 +11,8 @@ spec:
   replicas: {{ .Values.replicas }}
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/telegram-gateway-config.yaml") . | sha256sum }}
       labels:
         app: telegram-gateway
     spec:
@@ -69,7 +71,7 @@ spec:
     app: telegram-gateway
 ---
 {{- if .Values.pdb.enabled }}
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: telegram-gateway
