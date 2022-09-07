@@ -1,7 +1,7 @@
 apiVersion: v2
 icon: https://helm.sh/img/helm.svg
 name: telegram-gateway
-version: 1.0.2
+version: 1.0.3
 description: Telegram gateway for Prometheus and Sentry
 maintainers:
 - name: maksim-paskal  # Maksim Paskal

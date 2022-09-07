@@ -23,17 +23,9 @@ config:
     - name: Info
       value: "https://test.com#{{ .alertname | ToLower }}"
 
-domains:
-- name: default
-  chatID: -479832859
-
-topologySpreadConstraints:
-- maxSkew: 1
-  topologyKey: topology.kubernetes.io/zone
-  whenUnsatisfiable: DoNotSchedule
-  labelSelector:
-    matchLabels:
-      app: telegram-gateway
+  domains:
+  - name: default
+    chatID: -479832859
 
 affinity:
   podAntiAffinity:

@@ -14,7 +14,7 @@ limitations under the License.
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -50,7 +50,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		log.WithError(err).Error()
 	}
 
-	bodyBytes, err := ioutil.ReadAll(r.Body)
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.WithError(err).Error()
