@@ -4,13 +4,21 @@ release:
     ## Docker Images
     - `paskalmaksim/{{.ProjectName}}:latest`
     - `paskalmaksim/{{.ProjectName}}:{{.Tag}}`
+docker_manifests:
+- name_template: paskalmaksim/{{.ProjectName}}:latest
+  image_templates:
+  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-amd64
+  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-arm64
+- name_template: paskalmaksim/{{.ProjectName}}:{{.Tag}}
+  image_templates:
+  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-amd64
+  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-arm64
 dockers:
 - use: buildx
   goos: linux
   goarch: amd64
   image_templates:
-  - paskalmaksim/{{.ProjectName}}:latest
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}
+  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-amd64
   build_flag_templates:
   - "--platform=linux/amd64"
   - "--label=org.opencontainers.image.created={{.Date}}"
@@ -21,8 +29,7 @@ dockers:
   goos: linux
   goarch: arm64
   image_templates:
-  - paskalmaksim/{{.ProjectName}}:latest
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}
+  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-arm64
   build_flag_templates:
   - "--platform=linux/arm64/v8"
   - "--label=org.opencontainers.image.created={{.Date}}"
