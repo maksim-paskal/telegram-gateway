@@ -16,10 +16,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	pprof "net/http/pprof"
 	"os"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/gorilla/mux"
@@ -32,6 +32,12 @@ import (
 var (
 	gitVersion = "dev"
 	domains    map[string]ConfigDomains
+)
+
+const (
+	serverReadTimeout    = 5 * time.Second
+	serverRequestTimeout = 60 * time.Second
+	serverWriteTimeout   = 70 * time.Second
 )
 
 func main() {
@@ -72,7 +78,7 @@ func main() {
 	log.Infof("Starting telegram-gateway %s", appConfig.Version)
 
 	// load config file
-	yamlFile, err := ioutil.ReadFile(*appConfig.configFileName)
+	yamlFile, err := os.ReadFile(*appConfig.configFileName)
 	if err != nil {
 		log.WithError(err).Fatalf("error in reading config %s", *appConfig.configFileName)
 	}
@@ -154,7 +160,15 @@ func main() {
 
 	log.Printf("Staring server on port %d", *appConfig.port)
 
-	err = http.ListenAndServe(fmt.Sprintf(":%d", *appConfig.port), router)
+	timeoutMessage := fmt.Sprintf("Server timeout after %s", serverRequestTimeout)
+
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%d", *appConfig.port),
+		Handler:      http.TimeoutHandler(router, serverRequestTimeout, timeoutMessage),
+		ReadTimeout:  serverReadTimeout,
+		WriteTimeout: serverWriteTimeout,
+	}
+	err = server.ListenAndServe()
 
 	if err != nil {
 		log.WithError(err).Fatal("ListenAndServe")

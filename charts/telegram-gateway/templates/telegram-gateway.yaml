@@ -16,8 +16,6 @@ spec:
       labels:
         app: telegram-gateway
     spec:
-      topologySpreadConstraints:
-{{ toYaml .Values.topologySpreadConstraints | indent 7 }}
       affinity:
 {{ toYaml .Values.affinity | indent 7 }}
       volumes:
@@ -30,8 +28,17 @@ spec:
 {{ toYaml .Values.resources | indent 9 }}
         image: {{ .Values.registry.image }}
         imagePullPolicy: {{ .Values.registry.imagePullPolicy }}
-        command:
-        - /usr/local/bin/telegram-gateway
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 30001
+          runAsGroup: 30001
+          privileged: false
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        args:
         - -config=/config/telegram-gateway.yaml
 {{- if .Values.args }}
 {{ toYaml .Values.args | indent 8 }}
