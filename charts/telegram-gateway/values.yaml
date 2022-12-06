@@ -4,6 +4,8 @@ registry:
 
 replicas: 2
 
+tolerations: []
+
 config:
   defaults:
     token: 1072104160:AAH2sFpHELeH5oxMmd-tsVjgTuzoYO6hSLM
