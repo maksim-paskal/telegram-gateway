@@ -16,6 +16,10 @@ spec:
       labels:
         app: telegram-gateway
     spec:
+{{ if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 6 }}
+{{ end }}
       affinity:
 {{ toYaml .Values.affinity | indent 7 }}
       volumes:
