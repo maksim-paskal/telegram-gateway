@@ -17,7 +17,7 @@ import (
 	"io"
 	"net/http"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )

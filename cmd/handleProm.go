@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gorilla/mux"
 	template "github.com/prometheus/alertmanager/template"
 	log "github.com/sirupsen/logrus"

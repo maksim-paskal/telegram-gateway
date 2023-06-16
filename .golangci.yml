@@ -12,3 +12,4 @@ linters:
   - exhaustruct
   - wrapcheck
   - varnamelen
+  - depguard
