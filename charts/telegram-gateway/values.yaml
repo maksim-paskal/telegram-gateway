@@ -1,5 +1,5 @@
 registry:
-  image: paskalmaksim/telegram-gateway:v1.1.0
+  image: paskalmaksim/telegram-gateway:v1.1.1
   imagePullPolicy: IfNotPresent
 
 replicas: 2
