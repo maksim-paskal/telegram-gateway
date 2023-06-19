@@ -2,6 +2,18 @@ apiVersion: v1
 entries:
   telegram-gateway:
   - apiVersion: v2
+    created: "2023-06-19T07:01:25.42623006Z"
+    description: Telegram gateway for Prometheus and Sentry
+    digest: 663d30edfa5b19d468a15bd0fe523080fa32d19ec5fa1581217a385adbde40db
+    icon: https://helm.sh/img/helm.svg
+    maintainers:
+    - email: paskal.maksim@gmail.com
+      name: maksim-paskal
+    name: telegram-gateway
+    urls:
+    - https://github.com/maksim-paskal/telegram-gateway/releases/download/helm-chart-1.0.6/telegram-gateway-1.0.6.tgz
+    version: 1.0.6
+  - apiVersion: v2
     created: "2022-12-06T06:58:10.163701923Z"
     description: Telegram gateway for Prometheus and Sentry
     digest: a8176287486516ea61647a7bace3d8162f09ab25d2872adae2ef5730d01c15e1
