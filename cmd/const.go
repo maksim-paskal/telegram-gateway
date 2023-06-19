@@ -13,11 +13,15 @@ limitations under the License.
 
 package main
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 const (
-	ParseModeMarkdown = "Markdown"
-	defaultPort       = 9090
+	ParseModeMarkdown   = "Markdown"
+	defaultAddress      = ":9090"
+	defaultGracefulStop = 5 * time.Second
 )
 
 var ErrNameNotFound = errors.New("name not found")

@@ -15,8 +15,9 @@ package main
 
 import (
 	"flag"
+	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type ExtraLabels struct {
@@ -77,22 +78,24 @@ func (config *Config) fillDefaults() {
 type appConfigType struct {
 	Version        string
 	showVersion    *bool
-	port           *int
+	address        *string
 	logLevel       *string
 	logPretty      *bool
 	chatServer     *bool
 	defaultDomain  *string
 	configFileName *string
+	gracefulStop   *time.Duration
 }
 
 //nolint:gochecknoglobals
 var appConfig = appConfigType{
 	Version:        gitVersion,
 	showVersion:    flag.Bool("version", false, "show version"),
-	port:           flag.Int("server.port", defaultPort, "server port"),
+	address:        flag.String("server.address", defaultAddress, "server port"),
 	logLevel:       flag.String("log.level", "INFO", "log level"),
 	logPretty:      flag.Bool("log.pretty", false, "log in pretty format"),
 	chatServer:     flag.Bool("enableChatServer", false, "enableChatServer"),
 	defaultDomain:  flag.String("defaultDomain", "default", "domain for default"),
 	configFileName: flag.String("config", "config.yaml", "config yaml path"),
+	gracefulStop:   flag.Duration("gracefulStop", defaultGracefulStop, "time to wait for graceful stop"),
 }

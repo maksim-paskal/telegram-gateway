@@ -3,22 +3,22 @@ release:
   footer: |
     ## Docker Images
     - `paskalmaksim/{{.ProjectName}}:latest`
-    - `paskalmaksim/{{.ProjectName}}:{{.Tag}}`
+    - `paskalmaksim/{{.ProjectName}}:{{.Version}}`
 docker_manifests:
 - name_template: paskalmaksim/{{.ProjectName}}:latest
   image_templates:
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-amd64
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-arm64
-- name_template: paskalmaksim/{{.ProjectName}}:{{.Tag}}
+  - paskalmaksim/{{.ProjectName}}:{{.Version}}-amd64
+  - paskalmaksim/{{.ProjectName}}:{{.Version}}-arm64
+- name_template: paskalmaksim/{{.ProjectName}}:{{.Version}}
   image_templates:
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-amd64
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-arm64
+  - paskalmaksim/{{.ProjectName}}:{{.Version}}-amd64
+  - paskalmaksim/{{.ProjectName}}:{{.Version}}-arm64
 dockers:
 - use: buildx
   goos: linux
   goarch: amd64
   image_templates:
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-amd64
+  - paskalmaksim/{{.ProjectName}}:{{.Version}}-amd64
   build_flag_templates:
   - "--platform=linux/amd64"
   - "--label=org.opencontainers.image.created={{.Date}}"
@@ -29,9 +29,9 @@ dockers:
   goos: linux
   goarch: arm64
   image_templates:
-  - paskalmaksim/{{.ProjectName}}:{{.Tag}}-arm64
+  - paskalmaksim/{{.ProjectName}}:{{.Version}}-arm64
   build_flag_templates:
-  - "--platform=linux/arm64/v8"
+  - "--platform=linux/arm64"
   - "--label=org.opencontainers.image.created={{.Date}}"
   - "--label=org.opencontainers.image.title={{.ProjectName}}"
   - "--label=org.opencontainers.image.revision={{.FullCommit}}"
@@ -43,7 +43,7 @@ builds:
   flags:
   - -trimpath
   ldflags:
-  - -X main.gitVersion={{.Version}}-{{.ShortCommit}}-{{.Timestamp}}
+  - -w -s -X main.gitVersion={{.Version}}-{{.ShortCommit}}-{{.Timestamp}}
   goos:
   - linux
   goarch:
@@ -52,7 +52,7 @@ builds:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: "beta"
 changelog:
   sort: asc
   filters:

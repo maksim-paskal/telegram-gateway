@@ -10,16 +10,25 @@ test:
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run -v
 test-release:
 	git tag -d `git tag -l "helm-chart-*"`
-	go run github.com/goreleaser/goreleaser@latest release --snapshot --skip-publish --rm-dist
+	go run github.com/goreleaser/goreleaser@latest release --debug --snapshot --skip-publish --clean
 build:
 	git tag -d `git tag -l "helm-chart-*"`
-	go run github.com/goreleaser/goreleaser@latest build --rm-dist --skip-validate
-	mv ./dist/telegram-gateway_linux_amd64_v1/telegram-gateway telegram-gateway
+	go run github.com/goreleaser/goreleaser@latest build --clean --skip-validate
+	mv ./dist/gateway_linux_amd64_v1/telegram-gateway telegram-gateway
 	docker build --pull --push . -t $(image)
+promote-to-beta:
+	git tag -d `git tag -l "helm-chart-*"`
+	go run github.com/goreleaser/goreleaser@latest release --clean --snapshot
+	docker push paskalmaksim/telegram-gateway:beta-amd64
+	docker push paskalmaksim/telegram-gateway:beta-arm64
+	docker manifest create --amend paskalmaksim/telegram-gateway:beta \
+	paskalmaksim/telegram-gateway:beta-arm64 \
+	paskalmaksim/telegram-gateway:beta-amd64
+	docker manifest push --purge paskalmaksim/telegram-gateway:beta
 push:
 	docker push $(image)
 run:
-	go run -race -v ./cmd --log.level=DEBUG --log.pretty $(args)
+	go run -race -v ./cmd --log.level=DEBUG -server.address=127.0.0.1:9090 --log.pretty $(args)
 testProm:
 	curl -H "Content-Type: application/json" --data @scripts/test-data-prom.json http://localhost:9090/prom
 testSentry:

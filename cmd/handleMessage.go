@@ -15,12 +15,15 @@ package main
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
+
+const urlTitle = "url.title"
 
 func handleMessage(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -44,15 +47,17 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	var message strings.Builder
+	var message []string
 
 	for k, v := range r.URL.Query() {
-		if k != "url" && k != "url.title" && len(v[0]) > 0 {
-			message.WriteString(formatTelegramMessage(k, v[0]))
+		if k != "url" && k != urlTitle && len(v[0]) > 0 {
+			message = append(message, formatTelegramMessage(k, v[0]))
 		}
 	}
 
-	msg := tgbotapi.NewMessage(domain.ChatID, message.String())
+	sort.Strings(message)
+
+	msg := tgbotapi.NewMessage(domain.ChatID, strings.Join(message, ""))
 	msg.ParseMode = ParseModeMarkdown
 
 	if len(r.URL.Query()["url"]) > 0 {
@@ -62,8 +67,8 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 
 		caption := "Open"
 
-		if len(r.URL.Query()["url.title"]) > 0 && len(r.URL.Query()["url.title"][0]) > 0 {
-			caption = r.URL.Query()["url.title"][0]
+		if len(r.URL.Query()[urlTitle]) > 0 && len(r.URL.Query()[urlTitle][0]) > 0 {
+			caption = r.URL.Query()[urlTitle][0]
 		}
 
 		btn1 := tgbotapi.NewInlineKeyboardButtonURL(caption, r.URL.Query()["url"][0])
@@ -75,7 +80,6 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 	_, err = domain.bot.Send(msg)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.WithError(err).Error()
 

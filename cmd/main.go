@@ -14,14 +14,17 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
 	pprof "net/http/pprof"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gorilla/mux"
 	logrushooksentry "github.com/maksim-paskal/logrus-hook-sentry"
 	log "github.com/sirupsen/logrus"
@@ -52,8 +55,28 @@ func main() {
 
 	logLevel, err := log.ParseLevel(*appConfig.logLevel)
 	if err != nil {
-		log.Panic(err)
+		log.WithError(err).Fatal()
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.DeferExitHandler(func() {
+		cancel()
+		time.Sleep(*appConfig.gracefulStop)
+	})
+
+	interruptionSignal := make(chan os.Signal, 1)
+	signal.Notify(interruptionSignal, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-interruptionSignal:
+			log.Info("Got interruption signal")
+			cancel()
+		}
+	}()
 
 	hook, err := logrushooksentry.NewHook(logrushooksentry.Options{
 		Release: appConfig.Version,
@@ -112,7 +135,7 @@ func main() {
 	for _, domain := range config.Domains {
 		bot, err := tgbotapi.NewBotAPI(domain.Token)
 		if err != nil {
-			log.Panicf("[domain=%s] error connecting to bot %v", domain.Name, err)
+			log.WithError(err).Fatalf("[domain=%s] error connecting to bot", domain.Name)
 		}
 
 		log.Printf("[domain=%s] Authorized on account %s", domain.Name, bot.Self.UserName)
@@ -158,18 +181,27 @@ func main() {
 	router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
 	router.Handle("/debug/pprof/block", pprof.Handler("block"))
 
-	log.Printf("Staring server on port %d", *appConfig.port)
+	log.Printf("Staring server on %s", *appConfig.address)
 
 	timeoutMessage := fmt.Sprintf("Server timeout after %s", serverRequestTimeout)
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", *appConfig.port),
+		Addr:         *appConfig.address,
 		Handler:      http.TimeoutHandler(router, serverRequestTimeout, timeoutMessage),
 		ReadTimeout:  serverReadTimeout,
 		WriteTimeout: serverWriteTimeout,
 	}
-	err = server.ListenAndServe()
 
+	go func() {
+		<-ctx.Done()
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), *appConfig.gracefulStop)
+		defer shutdownCancel()
+
+		_ = server.Shutdown(shutdownCtx) //nolint:contextcheck
+	}()
+
+	err = server.ListenAndServe()
 	if err != nil {
 		log.WithError(err).Fatal("ListenAndServe")
 	}
@@ -183,10 +215,7 @@ func startChatServer() {
 
 	u.Timeout = 60
 
-	updates, err := domain.bot.GetUpdatesChan(u)
-	if err != nil {
-		log.WithError(err).Error()
-	}
+	updates := domain.bot.GetUpdatesChan(u)
 
 	log.Debug("range updates")
 

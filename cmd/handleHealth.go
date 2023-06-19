@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func handleHealthz(w http.ResponseWriter, r *http.Request) {
+func handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	if _, err := w.Write([]byte("OK")); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.WithError(err).Error()
