@@ -8,6 +8,8 @@ test:
 	go fmt ./cmd
 	go test -race ./cmd
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run -v
+test-chart:
+	ct lint --all
 test-release:
 	git tag -d `git tag -l "helm-chart-*"`
 	go run github.com/goreleaser/goreleaser@latest release --debug --snapshot --skip-publish --clean

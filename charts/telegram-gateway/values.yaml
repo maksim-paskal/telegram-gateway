@@ -1,10 +1,11 @@
 registry:
-  image: paskalmaksim/telegram-gateway:v1.0.9
+  image: paskalmaksim/telegram-gateway:v1.1.0
   imagePullPolicy: IfNotPresent
 
 replicas: 2
 
 tolerations: []
+nodeSelector: {}
 
 config:
   defaults:
