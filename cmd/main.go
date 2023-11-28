@@ -78,7 +78,7 @@ func main() {
 		}
 	}()
 
-	hook, err := logrushooksentry.NewHook(logrushooksentry.Options{
+	hook, err := logrushooksentry.NewHook(ctx, logrushooksentry.Options{
 		Release: appConfig.Version,
 	})
 	if err != nil {
