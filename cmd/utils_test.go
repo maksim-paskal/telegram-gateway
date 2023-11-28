@@ -22,7 +22,7 @@ func TestFormatTelegramMessage(t *testing.T) {
 
 	ans := formatTelegramMessage("a", "b")
 
-	const right = "\n*a*``` b ```"
+	const right = "\n*a* `b`"
 
 	if ans != right {
 		t.Errorf("formatTelegramMessage = %s; want %s", ans, right)

@@ -202,7 +202,7 @@ func main() {
 	}()
 
 	err = server.ListenAndServe()
-	if err != nil {
+	if err != nil && ctx.Err() == nil {
 		log.WithError(err).Fatal("ListenAndServe")
 	}
 }

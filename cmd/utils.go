@@ -24,7 +24,7 @@ import (
 )
 
 func formatTelegramMessage(name string, value string) string {
-	return fmt.Sprintf("\n*%s*``` %s ```", name, value)
+	return fmt.Sprintf("\n*%s* `%s`", name, value)
 }
 
 //nolint:gomnd
