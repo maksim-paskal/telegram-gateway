@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,7 +93,7 @@ func handleProm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(data.Alerts) > 1 {
-		message.WriteString(formatTelegramMessage("Alert Count", fmt.Sprintf("%d", len(data.Alerts))))
+		message.WriteString(formatTelegramMessage("Alert Count", strconv.Itoa(len(data.Alerts))))
 	}
 
 	alertLabels := make(map[string]string)
